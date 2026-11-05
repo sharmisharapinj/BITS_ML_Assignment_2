@@ -1,18 +1,18 @@
-# Dry Bean Classification Using Machine Learning
+# Machine Learning Assignment 2 – Dry Bean Classification
 
-## 1. Problem Statement
+## a. Problem Statement
 
-The objective of this project is to develop a multiclass classification system to identify different varieties of dry beans using their physical measurements.
+The objective of this assignment is to implement five machine learning classification models using a common dataset and evaluate their performance using the specified evaluation metrics.
 
-Five machine learning classification algorithms are implemented and evaluated using the same dataset. Their performance is compared using six evaluation metrics to identify the best-performing model.
+The models are trained and tested on the selected dataset to identify the best-performing classification algorithm for predicting different varieties of dry beans.
 
-## 2. Dataset Description
+## b. Dataset Description
 
-**Dataset:** UCI Dry Bean Dataset
+**Dataset Name:** Dry Bean Dataset
 
-**Source:** [UCI Machine Learning Repository – Dry Bean Dataset](https://archive.ics.uci.edu/dataset/602/dry+bean)
+**Dataset Source:** [UCI Machine Learning Repository – Dry Bean Dataset](https://archive.ics.uci.edu/dataset/602/dry)
 
-The dataset contains physical measurements of dry bean samples belonging to seven different classes:
+The Dry Bean dataset contains physical measurements of dry bean samples belonging to seven different classes:
 
 - SEKER
 - BARBUNYA
@@ -22,35 +22,32 @@ The dataset contains physical measurements of dry bean samples belonging to seve
 - SIRA
 - DERMASON
 
-Dataset details:
+The dataset consists of 16 numerical input features representing the geometric characteristics of dry beans and one target variable, `Class`.
 
-| Description | Value |
+| Dataset Details | Value |
 |---|---:|
-| Original records | 13,611 |
+| Original number of records | 13,611 |
 | Duplicate records removed | 68 |
-| Final records | 13,543 |
-| Input features | 16 |
+| Final number of records | 13,543 |
+| Number of input features | 16 |
 | Target variable | Class |
 | Number of classes | 7 |
 | Training records | 10,834 |
 | Testing records | 2,709 |
 
-The dataset contains 16 numerical input features representing the geometric characteristics of dry beans and one target variable, `Class`.
+The duplicate records were removed during preprocessing. The cleaned dataset was divided into training and testing sets using an 80:20 stratified split.
 
-## 3. Data Preprocessing
+## c. GitHub Repository Link
 
-The following preprocessing steps were performed:
+**GitHub Repository Link:**
 
-- Inspected the dataset structure, data types and statistical properties.
-- Checked for missing values and duplicate records.
-- Removed 68 duplicate records.
-- Separated the input features and target variable.
-- Split the cleaned dataset into training and testing sets using an 80:20 stratified split.
-- Applied StandardScaler to Logistic Regression, K-Nearest Neighbor and Support Vector Machine through preprocessing pipelines.
+https://github.com/sharmisharapinj/BITS_ML_Assignment_2
 
-## 4. Machine Learning Models
+The repository contains the complete source code, Jupyter Notebook, Streamlit application, requirements file, testing dataset and saved trained models for all five classifiers.
 
-The following five classification algorithms were implemented using the same dataset:
+## d. Models Used
+
+The following five machine learning classification models were implemented using the same dataset:
 
 1. Logistic Regression
 2. Decision Tree Classifier
@@ -58,109 +55,30 @@ The following five classification algorithms were implemented using the same dat
 4. Naive Bayes Classifier (Gaussian)
 5. Support Vector Machine
 
-All models were trained using the training dataset and evaluated using the same testing dataset.
+### Comparison Table – Evaluation Metrics
 
-## 5. Evaluation Metrics
-
-The models were evaluated using the following six metrics:
-
-1. Accuracy
-2. AUC Score
-3. Precision
-4. Recall
-5. F1 Score
-6. Matthews Correlation Coefficient (MCC Score)
-
-Weighted averaging was used for Precision, Recall and F1 Score. AUC was calculated using the One-vs-Rest multiclass strategy with weighted averaging.
-
-## 6. Model Performance Comparison
-
-| Model | Accuracy | AUC | Precision | Recall | F1 Score | MCC |
+| ML Model Name | Accuracy | AUC | Precision | Recall | F1 | MCC |
 |---|---:|---:|---:|---:|---:|---:|
 | Logistic Regression | 0.9195 | 0.9935 | 0.9201 | 0.9195 | 0.9197 | 0.9028 |
 | Decision Tree | 0.8955 | 0.9357 | 0.8954 | 0.8955 | 0.8953 | 0.8737 |
 | KNN | 0.9155 | 0.9811 | 0.9163 | 0.9155 | 0.9157 | 0.8978 |
-| Gaussian Naive Bayes | 0.7630 | 0.9644 | 0.7647 | 0.7630 | 0.7607 | 0.7143 |
-| SVM | 0.9210 | 0.9886 | 0.9214 | 0.9210 | 0.9211 | 0.9045 |
+| Naive Bayes | 0.7630 | 0.9644 | 0.7647 | 0.7630 | 0.7607 | 0.7143 |
+| Support Vector Machine | 0.9210 | 0.9886 | 0.9214 | 0.9210 | 0.9211 | 0.9045 |
 
-## 7. Model Observations
+### Observations on the Performance of Each Model
 
-- **Logistic Regression:** Achieved the highest AUC Score of 0.9935, indicating strong class discrimination performance.
-- **Decision Tree Classifier:** Provided reasonable classification performance but performed below Logistic Regression, KNN and SVM.
-- **K-Nearest Neighbor Classifier:** Achieved an Accuracy of 0.9155 and demonstrated competitive classification performance.
-- **Gaussian Naive Bayes:** Recorded the lowest Accuracy of 0.7630 among the five models.
-- **Support Vector Machine:** Achieved the highest Accuracy, Precision, Recall, F1 Score and MCC Score.
+| ML Model Name | Observation about model performance |
+|---|---|
+| Logistic Regression | Achieved the highest AUC score of 0.9935, indicating strong class discrimination performance. It also demonstrated competitive performance across the other evaluation metrics. |
+| Decision Tree | Achieved an accuracy of 0.8955. It provided reasonable classification performance but performed below Logistic Regression, KNN and SVM. |
+| KNN | Achieved an accuracy of 0.9155, demonstrating competitive performance across the evaluation metrics. |
+| Naive Bayes | Recorded the lowest accuracy of 0.7630 and MCC score of 0.7143 among the five models. |
+| Support Vector Machine | Achieved the highest accuracy (0.9210), precision (0.9214), recall (0.9210), F1 score (0.9211) and MCC score (0.9045). |
 
-## 8. Overall Conclusion
+### Overall, Winner for your dataset?
 
-All five classification models were successfully implemented and evaluated using the same dataset.
+**Support Vector Machine (SVM)**
 
-Support Vector Machine demonstrated the strongest overall classification performance, achieving the highest Accuracy (0.9210), Precision (0.9214), Recall (0.9210), F1 Score (0.9211) and MCC Score (0.9045).
+Support Vector Machine was identified as the overall winner based on its performance across the evaluation metrics. It achieved the highest Accuracy, Precision, Recall, F1 Score and Matthews Correlation Coefficient among the five models.
 
-Logistic Regression achieved the highest AUC Score of 0.9935.
-
-Based on the overall classification metrics, Support Vector Machine was identified as the best-performing model.
-
-## 9. Streamlit Application
-
-An interactive Streamlit application was developed to evaluate the five trained classification models.
-
-Application features:
-
-- Upload a testing dataset in CSV format.
-- Select any of the five trained classification models.
-- Generate predictions using the selected model.
-- View all six evaluation metrics.
-- Visualize the confusion matrix.
-- View the classification report.
-- View the prediction summary.
-
-The application loads previously saved models and evaluates them without performing additional model training.
-
-**GitHub Repository:**  
-https://github.com/sharmisharapinj/BITS_ML_Assignment_2
-
-**Live Streamlit Application:**  
-[Add the deployed Streamlit application URL here]
-
-## 10. Project Structure
-
-```text
-BITS_ML_Assignment_2/
-│
-├── app.py
-├── requirements.txt
-├── README.md
-├── test_data.csv
-│
-├── model/
-│   ├── logistic_regression.joblib
-│   ├── decision_tree.joblib
-│   ├── knn.joblib
-│   ├── naive_bayes.joblib
-│   └── svm.joblib
-│
-├── ML_Assignment_2.ipynb
-└── .gitignore
-```
-
-## 11. Installation and Execution
-
-### Prerequisites
-
-- Python
-- pip
-
-### Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Run the Streamlit Application
-
-```bash
-streamlit run app.py
-```
-
-The application will open in the browser. Upload `test_data.csv` to evaluate the classification models.
+Although Logistic Regression achieved the highest AUC score of 0.9935, SVM demonstrated the strongest overall classification performance across the other five metrics.
