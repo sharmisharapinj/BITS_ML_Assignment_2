@@ -183,7 +183,7 @@ if uploaded_file is not None:
 
     st.dataframe(
         test_data.head(),
-        use_container_width=True
+         width="stretch"
     )
 
     st.write("Dataset Shape:", test_data.shape)
