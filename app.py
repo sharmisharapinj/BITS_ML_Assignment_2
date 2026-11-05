@@ -1,21 +1,6 @@
 
-import streamlit as st
-import pandas as pd
-import joblib
 import os
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-from sklearn.metrics import (
-    accuracy_score,
-    roc_auc_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    matthews_corrcoef,
-    confusion_matrix,
-    classification_report
-)
+import streamlit as st
 
 
 # --------------------------------------------------
@@ -131,11 +116,13 @@ MODEL_PATHS = {
 
 
 # --------------------------------------------------
-# 6. Load Only the Selected Trained Model
+# 6. Load Trained Models
 # --------------------------------------------------
 
 @st.cache_resource
 def load_model(model_path):
+
+    import joblib
 
     if not os.path.exists(model_path):
         raise FileNotFoundError(
@@ -146,7 +133,127 @@ def load_model(model_path):
 
 
 # --------------------------------------------------
-# 7. Upload Test Dataset
+# 7. Load All Five Models Once
+# --------------------------------------------------
+
+@st.cache_resource
+def load_all_models(model_paths):
+
+    loaded_models = {}
+
+    for model_name, model_path in model_paths:
+
+        loaded_models[model_name] = load_model(model_path)
+
+    return loaded_models
+
+
+# --------------------------------------------------
+# 8. Calculate Evaluation Metrics
+# --------------------------------------------------
+
+def calculate_metrics(model, X, y_actual):
+
+    from sklearn.metrics import (
+        accuracy_score,
+        roc_auc_score,
+        precision_score,
+        recall_score,
+        f1_score,
+        matthews_corrcoef
+    )
+
+    y_pred = model.predict(X)
+
+    y_proba = model.predict_proba(X)
+
+    accuracy = accuracy_score(
+        y_actual,
+        y_pred
+    )
+
+    auc = roc_auc_score(
+        y_actual,
+        y_proba,
+        multi_class="ovr",
+        average="weighted",
+        labels=model.classes_
+    )
+
+    precision = precision_score(
+        y_actual,
+        y_pred,
+        average="weighted",
+        zero_division=0
+    )
+
+    recall = recall_score(
+        y_actual,
+        y_pred,
+        average="weighted",
+        zero_division=0
+    )
+
+    f1 = f1_score(
+        y_actual,
+        y_pred,
+        average="weighted",
+        zero_division=0
+    )
+
+    mcc = matthews_corrcoef(
+        y_actual,
+        y_pred
+    )
+
+    return {
+        "Accuracy": accuracy,
+        "AUC": auc,
+        "Precision": precision,
+        "Recall": recall,
+        "F1": f1,
+        "MCC": mcc
+    }
+
+
+# --------------------------------------------------
+# 9. Evaluate and Cache All Five Models
+# --------------------------------------------------
+
+@st.cache_data(show_spinner=False)
+def evaluate_all_models(test_data, model_paths):
+
+    X = test_data[FEATURES]
+
+    y_actual = test_data[TARGET]
+
+    comparison_results = []
+
+    for model_name, model_path in model_paths:
+
+        comparison_model = load_model(model_path)
+
+        model_metrics = calculate_metrics(
+            comparison_model,
+            X,
+            y_actual
+        )
+
+        comparison_results.append({
+            "ML Model Name": model_name.split(". ", 1)[1],
+            "Accuracy": model_metrics["Accuracy"],
+            "AUC": model_metrics["AUC"],
+            "Precision": model_metrics["Precision"],
+            "Recall": model_metrics["Recall"],
+            "F1": model_metrics["F1"],
+            "MCC": model_metrics["MCC"]
+        })
+
+    return comparison_results
+
+
+# --------------------------------------------------
+# 10. Upload Test Dataset
 # --------------------------------------------------
 
 st.header("Upload Test Dataset")
@@ -157,10 +264,16 @@ uploaded_file = st.file_uploader(
 )
 
 
+# --------------------------------------------------
+# 11. Process Uploaded Test Dataset
+# --------------------------------------------------
+
 if uploaded_file is not None:
 
+    import pandas as pd
+
     # --------------------------------------------------
-    # 8. Read Uploaded Dataset
+    # 12. Read Uploaded Dataset
     # --------------------------------------------------
 
     try:
@@ -176,21 +289,21 @@ if uploaded_file is not None:
 
 
     # --------------------------------------------------
-    # 9. Display Uploaded Dataset
+    # 13. Display Uploaded Dataset
     # --------------------------------------------------
 
     st.subheader("Uploaded Dataset Preview")
 
     st.dataframe(
         test_data.head(),
-         width="stretch"
+        width="stretch"
     )
 
     st.write("Dataset Shape:", test_data.shape)
 
 
     # --------------------------------------------------
-    # 10. Validate Dataset
+    # 14. Validate Dataset
     # --------------------------------------------------
 
     required_columns = FEATURES + [TARGET]
@@ -223,7 +336,7 @@ if uploaded_file is not None:
 
 
     # --------------------------------------------------
-    # 11. Prepare Input Features and Actual Target
+    # 15. Prepare Input Features and Actual Target
     # --------------------------------------------------
 
     X_uploaded = test_data[FEATURES]
@@ -232,7 +345,37 @@ if uploaded_file is not None:
 
 
     # --------------------------------------------------
-    # 12. Select Classification Model
+    # 16. Load All Five Trained Models
+    # --------------------------------------------------
+
+    model_paths_tuple = tuple(
+        MODEL_PATHS.items()
+    )
+
+    try:
+
+        with st.spinner(
+            "Loading all five trained classification models. Please wait..."
+        ):
+
+            loaded_models = load_all_models(
+                model_paths_tuple
+            )
+
+        st.success(
+            "All five classification models are ready!"
+        )
+
+    except Exception as error:
+
+        st.error(
+            f"Unable to load trained models: {error}"
+        )
+        st.stop()
+
+
+    # --------------------------------------------------
+    # 17. Select Classification Model
     # --------------------------------------------------
 
     st.header("Select Classification Model")
@@ -244,38 +387,23 @@ if uploaded_file is not None:
 
 
     # --------------------------------------------------
-    # 13. Load Selected Model
+    # 18. Get Selected Model
     # --------------------------------------------------
 
-    selected_model_path = MODEL_PATHS[selected_model_name]
+    selected_model = loaded_models[selected_model_name]
+
+
+    # --------------------------------------------------
+    # 19. Generate Predictions
+    # --------------------------------------------------
 
     try:
 
         with st.spinner(
-            f"Loading {selected_model_name}..."
+            f"Generating predictions using {selected_model_name}..."
         ):
 
-            selected_model = load_model(
-                selected_model_path
-            )
-
-    except Exception as error:
-
-        st.error(
-            f"Unable to load selected model: {error}"
-        )
-        st.stop()
-
-
-    # --------------------------------------------------
-    # 14. Generate Predictions
-    # --------------------------------------------------
-
-    try:
-
-        y_pred = selected_model.predict(X_uploaded)
-
-        y_proba = selected_model.predict_proba(X_uploaded)
+            y_pred = selected_model.predict(X_uploaded)
 
         st.success(
             f"Predictions generated using {selected_model_name}!"
@@ -290,60 +418,36 @@ if uploaded_file is not None:
 
 
     # --------------------------------------------------
-    # 15. Calculate Evaluation Metrics
+    # 20. Calculate Selected Model Evaluation Metrics
     # --------------------------------------------------
 
     try:
 
-        accuracy = accuracy_score(
-            y_actual,
-            y_pred
-        )
+        with st.spinner("Calculating evaluation metrics..."):
 
-        auc = roc_auc_score(
-            y_actual,
-            y_proba,
-            multi_class="ovr",
-            average="weighted",
-            labels=selected_model.classes_
-        )
+            metrics = calculate_metrics(
+                selected_model,
+                X_uploaded,
+                y_actual
+            )
 
-        precision = precision_score(
-            y_actual,
-            y_pred,
-            average="weighted",
-            zero_division=0
-        )
-
-        recall = recall_score(
-            y_actual,
-            y_pred,
-            average="weighted",
-            zero_division=0
-        )
-
-        f1 = f1_score(
-            y_actual,
-            y_pred,
-            average="weighted",
-            zero_division=0
-        )
-
-        mcc = matthews_corrcoef(
-            y_actual,
-            y_pred
-        )
+        accuracy = metrics["Accuracy"]
+        auc = metrics["AUC"]
+        precision = metrics["Precision"]
+        recall = metrics["Recall"]
+        f1 = metrics["F1"]
+        mcc = metrics["MCC"]
 
 
         # --------------------------------------------------
-        # 16. Evaluation Metrics
+        # 21. Evaluation Metrics
         # --------------------------------------------------
 
         st.header("Evaluation Metrics")
 
         st.write(
-            "For each of the five classification models, "
-            "the following evaluation metrics are calculated "
+            "For the selected classification model, "
+            "the following six evaluation metrics are calculated "
             "as specified in the assignment."
         )
 
@@ -383,52 +487,61 @@ if uploaded_file is not None:
 
 
         # --------------------------------------------------
-        # 17. Confusion Matrix
+        # 22. Confusion Matrix
         # --------------------------------------------------
 
-        st.header("Confusion Matrix")
+        from sklearn.metrics import confusion_matrix
 
-        class_labels = selected_model.classes_
+        import matplotlib.pyplot as plt
+        import seaborn as sns
 
-        cm = confusion_matrix(
-            y_actual,
-            y_pred,
-            labels=class_labels
-        )
+        with st.spinner("Generating confusion matrix..."):
 
-        fig, ax = plt.subplots(figsize=(9, 6))
+            class_labels = selected_model.classes_
 
-        sns.heatmap(
-            cm,
-            annot=True,
-            fmt="d",
-            cmap="Blues",
-            xticklabels=class_labels,
-            yticklabels=class_labels,
-            ax=ax
-        )
+            cm = confusion_matrix(
+                y_actual,
+                y_pred,
+                labels=class_labels
+            )
 
-        ax.set_xlabel("Predicted Class")
-        ax.set_ylabel("Actual Class")
+            fig, ax = plt.subplots(figsize=(9, 6))
 
-        ax.set_title(
-            f"Confusion Matrix - {selected_model_name}"
-        )
+            sns.heatmap(
+                cm,
+                annot=True,
+                fmt="d",
+                cmap="Blues",
+                xticklabels=class_labels,
+                yticklabels=class_labels,
+                ax=ax
+            )
 
-        plt.xticks(rotation=45)
-        plt.yticks(rotation=0)
-        plt.tight_layout()
+            ax.set_xlabel("Predicted Class")
+            ax.set_ylabel("Actual Class")
 
-        st.pyplot(fig)
+            ax.set_title(
+                f"Confusion Matrix - {selected_model_name}"
+            )
 
-        plt.close(fig)
+            plt.xticks(rotation=45)
+            plt.yticks(rotation=0)
+            plt.tight_layout()
+
+            st.header("Confusion Matrix")
+
+            st.pyplot(fig)
+
+            plt.close(fig)
 
 
         # --------------------------------------------------
-        # 18. Classification Report
+        # 23. Classification Report
         # --------------------------------------------------
 
         st.header("Classification Report")
+
+        from sklearn.metrics import classification_report
 
         report = classification_report(
             y_actual,
@@ -495,36 +608,69 @@ if uploaded_file is not None:
 
 
         # --------------------------------------------------
-        # 19. Prediction Summary
+        # 24. Model Performance Comparison
         # --------------------------------------------------
 
-        st.header("Prediction Summary")
+        st.header("Model Performance Comparison")
 
-        correct_predictions = int(
-            (y_actual == y_pred).sum()
+        st.write(
+            "The following table compares all five classification "
+            "models using the uploaded test dataset and the six "
+            "evaluation metrics specified in the assignment."
         )
 
-        incorrect_predictions = int(
-            (y_actual != y_pred).sum()
+        with st.spinner(
+            "Evaluating all five classification models..."
+        ):
+
+            comparison_results = evaluate_all_models(
+                test_data,
+                model_paths_tuple
+            )
+
+        st.success(
+            "Model comparison completed successfully!"
         )
 
-        total_predictions = len(y_actual)
-
-        summary_col1, summary_col2, summary_col3 = st.columns(3)
-
-        summary_col1.metric(
-            "Total Predictions",
-            total_predictions
+        comparison_df = pd.DataFrame(
+            comparison_results
         )
 
-        summary_col2.metric(
-            "Correct Predictions",
-            correct_predictions
+        styled_comparison = (
+            comparison_df.style
+            .format({
+                "Accuracy": "{:.4f}",
+                "AUC": "{:.4f}",
+                "Precision": "{:.4f}",
+                "Recall": "{:.4f}",
+                "F1": "{:.4f}",
+                "MCC": "{:.4f}"
+            })
+            .set_table_styles([
+                {
+                    "selector": "th",
+                    "props": [
+                        ("text-align", "center"),
+                        ("vertical-align", "middle")
+                    ]
+                },
+                {
+                    "selector": "td",
+                    "props": [
+                        ("text-align", "center"),
+                        ("vertical-align", "middle")
+                    ]
+                }
+            ])
+            .set_properties(**{
+                "text-align": "center",
+                "vertical-align": "middle"
+            })
         )
 
-        summary_col3.metric(
-            "Incorrect Predictions",
-            incorrect_predictions
+        st.markdown(
+            styled_comparison.to_html(),
+            unsafe_allow_html=True
         )
 
 
