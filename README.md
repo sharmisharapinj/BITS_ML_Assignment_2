@@ -2,58 +2,39 @@
 
 ## a. Problem Statement
 
-The objective of this assignment is to implement five machine learning classification models using a common dataset and evaluate their performance using the specified evaluation metrics.
+The objective of this assignment is to develop and evaluate five machine learning classification models using a public dataset. The models are trained to classify dry bean varieties based on their physical measurements.
 
-The models are trained and tested on the selected dataset to identify the best-performing classification algorithm for predicting different varieties of dry beans.
+The performance of each model is evaluated using six metrics: Accuracy, AUC Score, Precision, Recall, F1 Score and Matthews Correlation Coefficient (MCC). The models are compared to identify the best-performing classifier for the selected dataset.
 
 ## b. Dataset Description
 
-**Dataset Name:** Dry Bean Dataset
+The **UCI Dry Bean Dataset** was selected for this classification problem.
 
-**Dataset Source:** [UCI Machine Learning Repository – Dry Bean Dataset](https://archive.ics.uci.edu/dataset/602/dry)
+- **Dataset Source:** [UCI Machine Learning Repository – Dry Bean Dataset](https://archive.ics.uci.edu/dataset/602/dry)
+- **Total records:** 13,611
+- **Number of input features:** 16
+- **Target variable:** `Class`
+- **Number of target classes:** 7
 
-The Dry Bean dataset contains physical measurements of dry bean samples belonging to seven different classes:
+The dataset contains 16 numerical features describing the physical characteristics of dry beans, such as area, perimeter, major and minor axis lengths, eccentricity, compactness and shape factors.
 
-- SEKER
-- BARBUNYA
-- BOMBAY
-- CALI
-- HOROZ
-- SIRA
-- DERMASON
+The target variable represents seven dry bean varieties: SEKER, BARBUNYA, BOMBAY, CALI, HOROZ, SIRA and DERMASON.
 
-The dataset consists of 16 numerical input features representing the geometric characteristics of dry beans and one target variable, `Class`.
-
-| Dataset Details | Value |
-|---|---:|
-| Original number of records | 13,611 |
-| Duplicate records removed | 68 |
-| Final number of records | 13,543 |
-| Number of input features | 16 |
-| Target variable | Class |
-| Number of classes | 7 |
-| Training records | 10,834 |
-| Testing records | 2,709 |
-
-The duplicate records were removed during preprocessing. The cleaned dataset was divided into training and testing sets using an 80:20 stratified split.
+After removing 68 duplicate records, the cleaned dataset contained 13,543 records. The data was divided into training and testing sets using an 80:20 stratified split, resulting in 10,834 training records and 2,709 testing records.
 
 ## c. GitHub Repository Link
 
-**GitHub Repository Link:**
-
-https://github.com/sharmisharapinj/BITS_ML_Assignment_2
-
-The repository contains the complete source code, Jupyter Notebook, Streamlit application, requirements file, testing dataset and saved trained models for all five classifiers.
+[https://github.com/sharmisharapinj/BITS_ML_Assignment_2](https://github.com/sharmisharapinj/BITS_ML_Assignment_2)
 
 ## d. Models Used
 
-The following five machine learning classification models were implemented using the same dataset:
+The following five classification models were implemented and evaluated using the same training and testing dataset:
 
 1. Logistic Regression
 2. Decision Tree Classifier
-3. K-Nearest Neighbor Classifier
-4. Naive Bayes Classifier (Gaussian)
-5. Support Vector Machine
+3. K-Nearest Neighbor (KNN) Classifier
+4. Naive Bayes Classifier – Gaussian
+5. Support Vector Machine (SVM)
 
 ### Comparison Table – Evaluation Metrics
 
@@ -69,16 +50,9 @@ The following five machine learning classification models were implemented using
 
 | ML Model Name | Observation about model performance |
 |---|---|
-| Logistic Regression | Achieved the highest AUC score of 0.9935, indicating strong class discrimination performance. It also demonstrated competitive performance across the other evaluation metrics. |
-| Decision Tree | Achieved an accuracy of 0.8955. It provided reasonable classification performance but performed below Logistic Regression, KNN and SVM. |
-| KNN | Achieved an accuracy of 0.9155, demonstrating competitive performance across the evaluation metrics. |
-| Naive Bayes | Recorded the lowest accuracy of 0.7630 and MCC score of 0.7143 among the five models. |
-| Support Vector Machine | Achieved the highest accuracy (0.9210), precision (0.9214), recall (0.9210), F1 score (0.9211) and MCC score (0.9045). |
-
-### Overall, Winner for your dataset?
-
-**Support Vector Machine (SVM)**
-
-Support Vector Machine was identified as the overall winner based on its performance across the evaluation metrics. It achieved the highest Accuracy, Precision, Recall, F1 Score and Matthews Correlation Coefficient among the five models.
-
-Although Logistic Regression achieved the highest AUC score of 0.9935, SVM demonstrated the strongest overall classification performance across the other five metrics.
+| **Logistic Regression** | Achieved the highest AUC score of 0.9935, indicating excellent class discrimination. It also delivered strong and balanced performance across the other evaluation metrics. |
+| **Decision Tree** | Achieved an accuracy of 0.8955. It provided reasonable classification performance but scored lower than Logistic Regression, KNN and SVM on most evaluation metrics. |
+| **KNN** | Achieved an accuracy of 0.9155 and showed competitive performance across all evaluation metrics. |
+| **Naive Bayes** | Achieved an accuracy of 0.7630 and an MCC score of 0.7143, the lowest among the five models. Its overall classification performance was comparatively lower. |
+| **Support Vector Machine** | Achieved the highest accuracy (0.9210), precision (0.9214), recall (0.9210), F1 score (0.9211) and MCC score (0.9045), demonstrating the strongest overall classification performance. |
+| **Overall, Winner for your dataset?** | **Support Vector Machine (SVM)** is the overall winner because it achieved the highest scores in five of the six evaluation metrics. Logistic Regression achieved the highest AUC score of 0.9935. |
