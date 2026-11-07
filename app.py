@@ -1,3 +1,4 @@
+
 import os
 import html
 from pathlib import Path
@@ -448,8 +449,8 @@ st.header("📂 Test Dataset")
 
 st.markdown(
     '<p class="section-note">'
-    'The application automatically loads the bundled test dataset. '
-    'You can also upload another compatible test CSV.'
+    'The application automatically loads the bundled test_data.csv file. '
+    'You can also upload any compatible CSV test dataset.'
     '</p>',
     unsafe_allow_html=True
 )
@@ -466,11 +467,11 @@ upload_col, download_col = st.columns([1.35, 1], gap="medium")
 with upload_col:
 
     uploaded_file = st.file_uploader(
-        "Upload your own test dataset (optional)",
+        "Upload a test dataset (optional)",
         type=["csv"],
         help=(
-            "The CSV must contain all 16 input features "
-            "and the Class target column."
+            "Upload any CSV file containing "
+            "all 16 input features and the Class target column."
         ),
         key="test_dataset_upload"
     )
@@ -484,6 +485,7 @@ try:
 
         raw_data = pd.read_csv(uploaded_file)
         test_data = validate_dataset(raw_data)
+
         dataset_source = "Uploaded test dataset"
         dataset_filename = uploaded_file.name
         dataset_size_kb = uploaded_file.size / 1024
@@ -492,6 +494,7 @@ try:
 
         raw_data = load_default_dataset()
         test_data = validate_dataset(raw_data)
+
         dataset_source = "Default UCI Dry Bean test dataset"
         dataset_filename = "test_data.csv"
         dataset_size_kb = DATA_PATH.stat().st_size / 1024
@@ -507,9 +510,9 @@ with download_col:
     st.caption("Download the current test dataset")
 
     st.download_button(
-        label="⬇️ Download Sample Test CSV",
+        label="⬇️ Download Sample test_data.csv",
         data=test_data.to_csv(index=False).encode("utf-8"),
-        file_name="dry_bean_test_data.csv",
+        file_name="test_data.csv",
         mime="text/csv",
         use_container_width=True,
         key="download_current_test_dataset"
@@ -525,7 +528,7 @@ if uploaded_file is not None:
     st.markdown(
         f"""
         <div class="dataset-status uploaded">
-            <strong>✓ New test dataset uploaded successfully</strong><br>
+            <strong>✓ Test dataset uploaded successfully</strong><br>
             File: <strong>{safe_filename}</strong><br>
             The dashboard is now using your uploaded dataset to
             evaluate all five saved models.
@@ -540,9 +543,9 @@ else:
         """
         <div class="dataset-status">
             <strong>✓ Default test dataset loaded</strong><br>
-            Dataset: <strong>UCI Dry Bean Test Dataset</strong><br>
-            Upload another compatible CSV to evaluate the models
-            on your own test data.
+            Dataset: <strong>test_data.csv</strong><br>
+            Upload another compatible CSV file
+            to evaluate the models on your own test data.
         </div>
         """,
         unsafe_allow_html=True
@@ -1035,9 +1038,13 @@ lowest_accuracy_model = comparison_df.loc[
 ]
 
 st.markdown(f"""
+
 - 🏆 **Best accuracy:** {best_accuracy_model}
+
 - 🎯 **Best AUC:** {best_auc_model}
+
 - 📉 **Lowest accuracy:** {lowest_accuracy_model}
+
 """)
 
 
