@@ -1,89 +1,179 @@
-
 import os
+import html
+from pathlib import Path
+
+import joblib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 import streamlit as st
 
-
-# --------------------------------------------------
-# 1. Streamlit Page Configuration
-# --------------------------------------------------
-
-st.set_page_config(
-    page_title="Dry Bean Classification",
-    page_icon="🌱",
-    layout="wide"
+from sklearn.metrics import (
+    accuracy_score,
+    roc_auc_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    matthews_corrcoef,
+    confusion_matrix,
+    classification_report
 )
 
 
-# --------------------------------------------------
-# 2. Custom CSS
-# --------------------------------------------------
+# ==========================================================
+# 1. PAGE CONFIGURATION
+# ==========================================================
+
+st.set_page_config(
+    page_title="Dry Bean Classification Dashboard",
+    page_icon="🌱",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+
+# ==========================================================
+# 2. CUSTOM UI STYLING
+# ==========================================================
 
 st.markdown("""
 <style>
 
-/* Hide heading anchor icons */
-[data-testid="stHeaderActionElements"],
-.stHeadingActionElements,
-.stMarkdown h1 a,
-.stMarkdown h2 a,
-.stMarkdown h3 a,
-.stMarkdown h4 a {
-    display: none !important;
-    visibility: hidden !important;
+/* Main page layout */
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    max-width: 1450px;
 }
 
-/* Remove the red focus border from the model dropdown */
+/* Hide heading anchor icons */
+[data-testid="stHeaderActionElements"],
+.stHeadingActionElements {
+    display: none !important;
+}
+
+/* Hero section */
+.hero {
+    padding: 30px;
+    border-radius: 16px;
+    background: linear-gradient(120deg, #12372A, #24734D);
+    color: white;
+    margin-bottom: 24px;
+}
+
+.hero h1 {
+    color: white;
+    font-size: 34px;
+    margin-bottom: 8px;
+}
+
+.hero p {
+    color: #E5F5EA;
+    font-size: 15px;
+    margin-bottom: 0;
+}
+
+/* Section descriptions */
+.section-note {
+    color: #718096;
+    font-size: 14px;
+    margin-top: -8px;
+    margin-bottom: 18px;
+}
+
+/* Metric cards */
+div[data-testid="stMetric"] {
+    background: #F5F8F6;
+    border: 1px solid #E0EAE3;
+    padding: 15px;
+    border-radius: 12px;
+}
+
+div[data-testid="stMetricLabel"] {
+    color: #52665A;
+}
+
+div[data-testid="stMetricValue"] {
+    color: #174D34;
+}
+
+/* File uploader */
+div[data-testid="stFileUploader"] {
+    border: 1px dashed #80A991;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+/* Dataset status banner */
+.dataset-status {
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin: 12px 0 18px 0;
+    border: 1px solid #B8D9C2;
+    background: #EAF5EE;
+    color: #174D34;
+    line-height: 1.6;
+}
+
+.dataset-status strong {
+    color: #174D34;
+}
+
+.dataset-status.uploaded {
+    background: #EDF4FF;
+    border-color: #B8CFF2;
+    color: #244A7C;
+}
+
+.dataset-status.uploaded strong {
+    color: #244A7C;
+}
+
+/* ========================================================
+   SELECTBOX RED BORDER FIX
+   ======================================================== */
+
 div[data-testid="stSelectbox"] div[data-focus-within="true"] {
-    border-color: rgba(49, 51, 63, 0.2) !important;
+    border-color: #80A991 !important;
     box-shadow: none !important;
     outline: none !important;
+}
+
+/* Normal dropdown border */
+div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    border-color: #C7D6CC !important;
+    box-shadow: none !important;
+}
+
+/* Focused dropdown border */
+div[data-testid="stSelectbox"] [data-baseweb="select"] > div:focus-within {
+    border-color: #80A991 !important;
+    box-shadow: none !important;
+}
+
+/* Multiselect styling */
+div[data-testid="stMultiSelect"] [data-baseweb="select"] > div {
+    border-color: #C7D6CC !important;
+    box-shadow: none !important;
+}
+
+div[data-testid="stMultiSelect"] [data-baseweb="select"] > div:focus-within {
+    border-color: #80A991 !important;
+    box-shadow: none !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 
-# --------------------------------------------------
-# 3. Application Title and Introduction
-# --------------------------------------------------
+# ==========================================================
+# 3. PROJECT PATHS AND CONFIGURATION
+# ==========================================================
 
-st.title("🌱 Dry Bean Classification")
+BASE_DIR = Path(__file__).resolve().parent
 
-st.write(
-    "This application implements five machine learning "
-    "classification models using the Dry Bean dataset."
-)
-
-st.write(
-    "Upload a test dataset containing the required input features "
-    "and actual class labels to generate predictions and evaluate "
-    "the selected classification model."
-)
-
-
-# --------------------------------------------------
-# 4. Implementation of Classification Models
-# --------------------------------------------------
-
-st.header("Implementation of Classification Models")
-
-st.write(
-    "The following five machine learning classification models "
-    "are implemented and evaluated using the same dataset."
-)
-
-st.markdown("""
-1. Logistic Regression
-2. Decision Tree Classifier
-3. K-Nearest Neighbor Classifier
-4. Naive Bayes Classifier - Gaussian
-5. Support Vector Machine
-""")
-
-
-# --------------------------------------------------
-# 5. Feature and Model Configuration
-# --------------------------------------------------
+DATA_PATH = BASE_DIR / "test_data.csv"
 
 FEATURES = [
     "Area",
@@ -106,23 +196,32 @@ FEATURES = [
 
 TARGET = "Class"
 
+REQUIRED_COLUMNS = FEATURES + [TARGET]
+
 MODEL_PATHS = {
-    "1. Logistic Regression": "model/logistic_regression.joblib",
-    "2. Decision Tree Classifier": "model/decision_tree.joblib",
-    "3. K-Nearest Neighbor Classifier": "model/knn.joblib",
-    "4. Naive Bayes Classifier - Gaussian": "model/naive_bayes.joblib",
-    "5. Support Vector Machine": "model/svm.joblib"
+    "Logistic Regression":
+        BASE_DIR / "model" / "logistic_regression.joblib",
+
+    "Decision Tree Classifier":
+        BASE_DIR / "model" / "decision_tree.joblib",
+
+    "K-Nearest Neighbor Classifier":
+        BASE_DIR / "model" / "knn.joblib",
+
+    "Naive Bayes Classifier - Gaussian":
+        BASE_DIR / "model" / "naive_bayes.joblib",
+
+    "Support Vector Machine":
+        BASE_DIR / "model" / "svm.joblib"
 }
 
 
-# --------------------------------------------------
-# 6. Load Trained Models
-# --------------------------------------------------
+# ==========================================================
+# 4. LOAD SAVED MODELS
+# ==========================================================
 
 @st.cache_resource
 def load_model(model_path):
-
-    import joblib
 
     if not os.path.exists(model_path):
         raise FileNotFoundError(
@@ -132,558 +231,826 @@ def load_model(model_path):
     return joblib.load(model_path)
 
 
-# --------------------------------------------------
-# 7. Load All Five Models Once
-# --------------------------------------------------
-
 @st.cache_resource
-def load_all_models(model_paths):
+def load_all_models():
 
     loaded_models = {}
 
-    for model_name, model_path in model_paths:
+    for model_name, model_path in MODEL_PATHS.items():
 
-        loaded_models[model_name] = load_model(model_path)
+        loaded_models[model_name] = load_model(
+            str(model_path)
+        )
 
     return loaded_models
 
 
-# --------------------------------------------------
-# 8. Calculate Evaluation Metrics
-# --------------------------------------------------
+# ==========================================================
+# 5. LOAD DEFAULT TEST DATASET
+# ==========================================================
+
+@st.cache_data
+def load_default_dataset():
+
+    if not DATA_PATH.exists():
+        raise FileNotFoundError(
+            "The default test_data.csv file was not found."
+        )
+
+    return pd.read_csv(DATA_PATH)
+
+
+# ==========================================================
+# 6. VALIDATE TEST DATASET
+# ==========================================================
+
+def validate_dataset(data):
+
+    missing_columns = [
+        column
+        for column in REQUIRED_COLUMNS
+        if column not in data.columns
+    ]
+
+    if missing_columns:
+        raise ValueError(
+            f"Missing required columns: {missing_columns}"
+        )
+
+    if data.empty:
+        raise ValueError("The dataset is empty.")
+
+    data = data[REQUIRED_COLUMNS].copy()
+
+    for column in FEATURES:
+
+        data[column] = pd.to_numeric(
+            data[column],
+            errors="coerce"
+        )
+
+    if data[FEATURES].isnull().any().any():
+        raise ValueError(
+            "The feature columns contain missing or non-numeric values."
+        )
+
+    if not np.isfinite(data[FEATURES].to_numpy()).all():
+        raise ValueError(
+            "The feature columns contain infinite values."
+        )
+
+    if data[TARGET].isnull().any():
+        raise ValueError(
+            "The target column contains missing values."
+        )
+
+    data[TARGET] = data[TARGET].astype(str)
+
+    return data
+
+
+# ==========================================================
+# 7. CALCULATE EVALUATION METRICS
+# ==========================================================
 
 def calculate_metrics(model, X, y_actual):
 
-    from sklearn.metrics import (
-        accuracy_score,
-        roc_auc_score,
-        precision_score,
-        recall_score,
-        f1_score,
-        matthews_corrcoef
-    )
-
     y_pred = model.predict(X)
-
     y_proba = model.predict_proba(X)
+    model_classes = model.classes_
 
-    accuracy = accuracy_score(
-        y_actual,
-        y_pred
-    )
+    if set(y_actual.unique()) != set(model_classes):
+        raise ValueError(
+            "The test dataset must contain all seven bean classes "
+            "to calculate the multiclass AUC score consistently."
+        )
 
-    auc = roc_auc_score(
-        y_actual,
-        y_proba,
-        multi_class="ovr",
-        average="weighted",
-        labels=model.classes_
-    )
+    metrics = {
+        "Accuracy": accuracy_score(y_actual, y_pred),
 
-    precision = precision_score(
-        y_actual,
-        y_pred,
-        average="weighted",
-        zero_division=0
-    )
+        "AUC": roc_auc_score(
+            y_actual,
+            y_proba,
+            multi_class="ovr",
+            average="weighted",
+            labels=model_classes
+        ),
 
-    recall = recall_score(
-        y_actual,
-        y_pred,
-        average="weighted",
-        zero_division=0
-    )
+        "Precision": precision_score(
+            y_actual,
+            y_pred,
+            average="weighted",
+            zero_division=0
+        ),
 
-    f1 = f1_score(
-        y_actual,
-        y_pred,
-        average="weighted",
-        zero_division=0
-    )
+        "Recall": recall_score(
+            y_actual,
+            y_pred,
+            average="weighted",
+            zero_division=0
+        ),
 
-    mcc = matthews_corrcoef(
-        y_actual,
-        y_pred
-    )
+        "F1": f1_score(
+            y_actual,
+            y_pred,
+            average="weighted",
+            zero_division=0
+        ),
 
-    return {
-        "Accuracy": accuracy,
-        "AUC": auc,
-        "Precision": precision,
-        "Recall": recall,
-        "F1": f1,
-        "MCC": mcc
+        "MCC": matthews_corrcoef(
+            y_actual,
+            y_pred
+        )
     }
 
+    return metrics, y_pred
 
-# --------------------------------------------------
-# 9. Evaluate and Cache All Five Models
-# --------------------------------------------------
+
+# ==========================================================
+# 8. EVALUATE ALL FIVE MODELS
+# ==========================================================
 
 @st.cache_data(show_spinner=False)
-def evaluate_all_models(test_data, model_paths):
+def evaluate_all_models(test_data):
 
     X = test_data[FEATURES]
-
     y_actual = test_data[TARGET]
 
-    comparison_results = []
+    loaded_models = load_all_models()
 
-    for model_name, model_path in model_paths:
+    results = []
 
-        comparison_model = load_model(model_path)
+    for model_name, model in loaded_models.items():
 
-        model_metrics = calculate_metrics(
-            comparison_model,
+        metrics, _ = calculate_metrics(
+            model,
             X,
             y_actual
         )
 
-        comparison_results.append({
-            "ML Model Name": model_name.split(". ", 1)[1],
-            "Accuracy": model_metrics["Accuracy"],
-            "AUC": model_metrics["AUC"],
-            "Precision": model_metrics["Precision"],
-            "Recall": model_metrics["Recall"],
-            "F1": model_metrics["F1"],
-            "MCC": model_metrics["MCC"]
+        results.append({
+            "ML Model Name": model_name,
+            **metrics
         })
 
-    return comparison_results
+    return pd.DataFrame(results)
 
 
-# --------------------------------------------------
-# 10. Upload Test Dataset
-# --------------------------------------------------
+# ==========================================================
+# 9. APPLICATION HEADER
+# ==========================================================
 
-st.header("Upload Test Dataset")
+st.markdown("""
+<div class="hero">
+    <h1>🌱 Dry Bean Classification</h1>
+    <p>
+        Explore five machine learning classifiers, compare their
+        performance and evaluate dry bean varieties using an
+        interactive classification dashboard.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader(
-    "Choose a CSV file",
-    type=["csv"]
+
+# ==========================================================
+# 10. SIDEBAR
+# ==========================================================
+
+st.sidebar.title("🌿 Project Overview")
+
+st.sidebar.markdown("""
+**Dataset:** UCI Dry Bean Dataset
+
+**Problem:** Multi-class Classification
+
+**Input Features:** 16
+
+**Target Classes:** 7
+
+**ML Models:** 5
+
+**Evaluation Metrics:** 6
+""")
+
+st.sidebar.divider()
+
+st.sidebar.subheader("Available Models")
+
+for model_name in MODEL_PATHS:
+    st.sidebar.write(f"• {model_name}")
+
+
+# ==========================================================
+# 11. TEST DATASET
+# ==========================================================
+
+st.header("📂 Test Dataset")
+
+st.markdown(
+    '<p class="section-note">'
+    'The application automatically loads the bundled test dataset. '
+    'You can also upload another compatible test CSV.'
+    '</p>',
+    unsafe_allow_html=True
 )
 
 
-# --------------------------------------------------
-# 11. Process Uploaded Test Dataset
-# --------------------------------------------------
+# ==========================================================
+# 12. DATASET OVERVIEW AND DOWNLOAD
+# ==========================================================
+
+# Keep upload and download controls in the same row.
+
+upload_col, download_col = st.columns([1.35, 1], gap="medium")
+
+with upload_col:
+
+    uploaded_file = st.file_uploader(
+        "Upload your own test dataset (optional)",
+        type=["csv"],
+        help=(
+            "The CSV must contain all 16 input features "
+            "and the Class target column."
+        ),
+        key="test_dataset_upload"
+    )
+
+
+# Load and validate the selected dataset.
+
+try:
+
+    if uploaded_file is not None:
+
+        raw_data = pd.read_csv(uploaded_file)
+        test_data = validate_dataset(raw_data)
+        dataset_source = "Uploaded test dataset"
+        dataset_filename = uploaded_file.name
+        dataset_size_kb = uploaded_file.size / 1024
+
+    else:
+
+        raw_data = load_default_dataset()
+        test_data = validate_dataset(raw_data)
+        dataset_source = "Default UCI Dry Bean test dataset"
+        dataset_filename = "test_data.csv"
+        dataset_size_kb = DATA_PATH.stat().st_size / 1024
+
+except Exception as error:
+
+    st.error(f"Unable to load the test dataset: {error}")
+    st.stop()
+
+
+with download_col:
+
+    st.caption("Download the current test dataset")
+
+    st.download_button(
+        label="⬇️ Download Sample Test CSV",
+        data=test_data.to_csv(index=False).encode("utf-8"),
+        file_name="dry_bean_test_data.csv",
+        mime="text/csv",
+        use_container_width=True,
+        key="download_current_test_dataset"
+    )
+
+
+# Show a status message that changes when a new dataset is uploaded.
 
 if uploaded_file is not None:
 
-    import pandas as pd
+    safe_filename = html.escape(dataset_filename)
 
-    # --------------------------------------------------
-    # 12. Read Uploaded Dataset
-    # --------------------------------------------------
-
-    try:
-
-        test_data = pd.read_csv(uploaded_file)
-
-    except Exception as error:
-
-        st.error(
-            f"Unable to read the uploaded CSV file: {error}"
-        )
-        st.stop()
-
-
-    # --------------------------------------------------
-    # 13. Display Uploaded Dataset
-    # --------------------------------------------------
-
-    st.subheader("Uploaded Dataset Preview")
-
-    st.dataframe(
-        test_data.head(),
-        width="stretch"
+    st.markdown(
+        f"""
+        <div class="dataset-status uploaded">
+            <strong>✓ New test dataset uploaded successfully</strong><br>
+            File: <strong>{safe_filename}</strong><br>
+            The dashboard is now using your uploaded dataset to
+            evaluate all five saved models.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
-
-    st.write("Dataset Shape:", test_data.shape)
-
-
-    # --------------------------------------------------
-    # 14. Validate Dataset
-    # --------------------------------------------------
-
-    required_columns = FEATURES + [TARGET]
-
-    missing_columns = [
-        column
-        for column in required_columns
-        if column not in test_data.columns
-    ]
-
-    if missing_columns:
-
-        st.error(
-            f"Missing required columns: {missing_columns}"
-        )
-        st.stop()
-
-    if test_data.empty:
-
-        st.error("The uploaded dataset is empty.")
-        st.stop()
-
-    if test_data[required_columns].isnull().any().any():
-
-        st.error(
-            "The uploaded dataset contains missing values. "
-            "Please upload a dataset without missing values."
-        )
-        st.stop()
-
-
-    # --------------------------------------------------
-    # 15. Prepare Input Features and Actual Target
-    # --------------------------------------------------
-
-    X_uploaded = test_data[FEATURES]
-
-    y_actual = test_data[TARGET]
-
-
-    # --------------------------------------------------
-    # 16. Load All Five Trained Models
-    # --------------------------------------------------
-
-    model_paths_tuple = tuple(
-        MODEL_PATHS.items()
-    )
-
-    try:
-
-        with st.spinner(
-            "Loading all five trained classification models. Please wait..."
-        ):
-
-            loaded_models = load_all_models(
-                model_paths_tuple
-            )
-
-        st.success(
-            "All five classification models are ready!"
-        )
-
-    except Exception as error:
-
-        st.error(
-            f"Unable to load trained models: {error}"
-        )
-        st.stop()
-
-
-    # --------------------------------------------------
-    # 17. Select Classification Model
-    # --------------------------------------------------
-
-    st.header("Select Classification Model")
-
-    selected_model_name = st.selectbox(
-        "Choose a classification model",
-        list(MODEL_PATHS.keys())
-    )
-
-
-    # --------------------------------------------------
-    # 18. Get Selected Model
-    # --------------------------------------------------
-
-    selected_model = loaded_models[selected_model_name]
-
-
-    # --------------------------------------------------
-    # 19. Generate Predictions
-    # --------------------------------------------------
-
-    try:
-
-        with st.spinner(
-            f"Generating predictions using {selected_model_name}..."
-        ):
-
-            y_pred = selected_model.predict(X_uploaded)
-
-        st.success(
-            f"Predictions generated using {selected_model_name}!"
-        )
-
-    except Exception as error:
-
-        st.error(
-            f"Prediction failed: {error}"
-        )
-        st.stop()
-
-
-    # --------------------------------------------------
-    # 20. Calculate Selected Model Evaluation Metrics
-    # --------------------------------------------------
-
-    try:
-
-        with st.spinner("Calculating evaluation metrics..."):
-
-            metrics = calculate_metrics(
-                selected_model,
-                X_uploaded,
-                y_actual
-            )
-
-        accuracy = metrics["Accuracy"]
-        auc = metrics["AUC"]
-        precision = metrics["Precision"]
-        recall = metrics["Recall"]
-        f1 = metrics["F1"]
-        mcc = metrics["MCC"]
-
-
-        # --------------------------------------------------
-        # 21. Evaluation Metrics
-        # --------------------------------------------------
-
-        st.header("Evaluation Metrics")
-
-        st.write(
-            "For the selected classification model, "
-            "the following six evaluation metrics are calculated "
-            "as specified in the assignment."
-        )
-
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric(
-            "1. Accuracy",
-            f"{accuracy:.4f}"
-        )
-
-        col2.metric(
-            "2. AUC Score",
-            f"{auc:.4f}"
-        )
-
-        col3.metric(
-            "3. Precision",
-            f"{precision:.4f}"
-        )
-
-        col4, col5, col6 = st.columns(3)
-
-        col4.metric(
-            "4. Recall",
-            f"{recall:.4f}"
-        )
-
-        col5.metric(
-            "5. F1 Score",
-            f"{f1:.4f}"
-        )
-
-        col6.metric(
-            "6. Matthews Correlation Coefficient (MCC Score)",
-            f"{mcc:.4f}"
-        )
-
-
-        # --------------------------------------------------
-        # 22. Confusion Matrix
-        # --------------------------------------------------
-
-        from sklearn.metrics import confusion_matrix
-
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-
-        with st.spinner("Generating confusion matrix..."):
-
-            class_labels = selected_model.classes_
-
-            cm = confusion_matrix(
-                y_actual,
-                y_pred,
-                labels=class_labels
-            )
-
-            fig, ax = plt.subplots(figsize=(9, 6))
-
-            sns.heatmap(
-                cm,
-                annot=True,
-                fmt="d",
-                cmap="Blues",
-                xticklabels=class_labels,
-                yticklabels=class_labels,
-                ax=ax
-            )
-
-            ax.set_xlabel("Predicted Class")
-            ax.set_ylabel("Actual Class")
-
-            ax.set_title(
-                f"Confusion Matrix - {selected_model_name}"
-            )
-
-            plt.xticks(rotation=45)
-            plt.yticks(rotation=0)
-            plt.tight_layout()
-
-            st.header("Confusion Matrix")
-
-            st.pyplot(fig)
-
-            plt.close(fig)
-
-
-        # --------------------------------------------------
-        # 23. Classification Report
-        # --------------------------------------------------
-
-        st.header("Classification Report")
-
-        from sklearn.metrics import classification_report
-
-        report = classification_report(
-            y_actual,
-            y_pred,
-            labels=class_labels,
-            output_dict=True,
-            zero_division=0
-        )
-
-        report_df = pd.DataFrame(report).transpose()
-
-        report_df = report_df.drop(
-            index="accuracy",
-            errors="ignore"
-        )
-
-        report_df.index.name = "Class"
-
-        report_df = report_df.reset_index()
-
-        report_df = report_df.rename(
-            columns={
-                "precision": "Precision",
-                "recall": "Recall",
-                "f1-score": "F1-score",
-                "support": "Support"
-            }
-        )
-
-        styled_report = (
-            report_df.style
-            .format({
-                "Precision": "{:.4f}",
-                "Recall": "{:.4f}",
-                "F1-score": "{:.4f}",
-                "Support": "{:.0f}"
-            })
-            .set_table_styles([
-                {
-                    "selector": "th",
-                    "props": [
-                        ("text-align", "center"),
-                        ("vertical-align", "middle")
-                    ]
-                },
-                {
-                    "selector": "td",
-                    "props": [
-                        ("text-align", "center"),
-                        ("vertical-align", "middle")
-                    ]
-                }
-            ])
-            .set_properties(**{
-                "text-align": "center",
-                "vertical-align": "middle"
-            })
-        )
-
-        st.markdown(
-            styled_report.to_html(),
-            unsafe_allow_html=True
-        )
-
-
-        # --------------------------------------------------
-        # 24. Model Performance Comparison
-        # --------------------------------------------------
-
-        st.header("Model Performance Comparison")
-
-        st.write(
-            "The following table compares all five classification "
-            "models using the uploaded test dataset and the six "
-            "evaluation metrics specified in the assignment."
-        )
-
-        with st.spinner(
-            "Evaluating all five classification models..."
-        ):
-
-            comparison_results = evaluate_all_models(
-                test_data,
-                model_paths_tuple
-            )
-
-        st.success(
-            "Model comparison completed successfully!"
-        )
-
-        comparison_df = pd.DataFrame(
-            comparison_results
-        )
-
-        styled_comparison = (
-            comparison_df.style
-            .format({
-                "Accuracy": "{:.4f}",
-                "AUC": "{:.4f}",
-                "Precision": "{:.4f}",
-                "Recall": "{:.4f}",
-                "F1": "{:.4f}",
-                "MCC": "{:.4f}"
-            })
-            .set_table_styles([
-                {
-                    "selector": "th",
-                    "props": [
-                        ("text-align", "center"),
-                        ("vertical-align", "middle")
-                    ]
-                },
-                {
-                    "selector": "td",
-                    "props": [
-                        ("text-align", "center"),
-                        ("vertical-align", "middle")
-                    ]
-                }
-            ])
-            .set_properties(**{
-                "text-align": "center",
-                "vertical-align": "middle"
-            })
-        )
-
-        st.markdown(
-            styled_comparison.to_html(),
-            unsafe_allow_html=True
-        )
-
-
-    except Exception as error:
-
-        st.error(
-            f"Unable to calculate evaluation metrics: {error}"
-        )
-
 
 else:
 
-    st.info(
-        "Please upload a CSV file to generate predictions "
-        "and evaluate the selected classification model."
+    st.markdown(
+        """
+        <div class="dataset-status">
+            <strong>✓ Default test dataset loaded</strong><br>
+            Dataset: <strong>UCI Dry Bean Test Dataset</strong><br>
+            Upload another compatible CSV to evaluate the models
+            on your own test data.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
+
+
+# Dataset metrics update whenever the selected dataset changes.
+
+row_count = len(test_data)
+feature_count = len(FEATURES)
+class_count = test_data[TARGET].nunique()
+
+info1, info2, info3, info4 = st.columns(4)
+
+info1.metric(
+    "Test Records",
+    f"{row_count:,}"
+)
+
+info2.metric(
+    "Input Features",
+    feature_count
+)
+
+info3.metric(
+    "Bean Classes",
+    class_count
+)
+
+info4.metric(
+    "Dataset Size",
+    f"{dataset_size_kb:.1f} KB"
+)
+
+
+st.caption(
+    f"Current dataset: **{dataset_source}**"
+)
+
+
+# Dataset preview
+
+with st.expander("👀 Preview Test Dataset"):
+
+    st.dataframe(
+        test_data.head(10),
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.caption(
+        f"Showing the first 10 records from {row_count:,} "
+        "total records, containing 16 numerical features "
+        "and the target column Class."
+    )
+
+
+# ==========================================================
+# 13. LOAD MODELS AND EVALUATE DATASET
+# ==========================================================
+
+try:
+
+    with st.spinner(
+        "Loading saved models and evaluating performance..."
+    ):
+
+        loaded_models = load_all_models()
+
+        comparison_df = evaluate_all_models(test_data)
+
+except Exception as error:
+
+    st.error(f"Model evaluation failed: {error}")
+    st.stop()
+
+
+# ==========================================================
+# 14. EXPLORE AN INDIVIDUAL MODEL
+# ==========================================================
+
+st.divider()
+
+st.header("🔍 Explore an Individual Model")
+
+st.markdown(
+    '<p class="section-note">'
+    'Select a saved classifier to view its evaluation metrics, '
+    'confusion matrix and classification report on the current test dataset.'
+    '</p>',
+    unsafe_allow_html=True
+)
+
+selected_model_name = st.selectbox(
+    "Choose a classification model",
+    list(MODEL_PATHS.keys()),
+    key="individual_model_select"
+)
+
+selected_model = loaded_models[selected_model_name]
+
+X_test = test_data[FEATURES]
+y_actual = test_data[TARGET]
+
+try:
+
+    selected_metrics, y_pred = calculate_metrics(
+        selected_model,
+        X_test,
+        y_actual
+    )
+
+except Exception as error:
+
+    st.error(f"Unable to evaluate selected model: {error}")
+    st.stop()
+
+
+# ==========================================================
+# 15. SELECTED MODEL EVALUATION METRICS
+# ==========================================================
+
+st.subheader(f"Performance: {selected_model_name}")
+
+metric_names = [
+    ("Accuracy", "Accuracy"),
+    ("AUC", "AUC Score"),
+    ("Precision", "Precision"),
+    ("Recall", "Recall"),
+    ("F1", "F1 Score"),
+    ("MCC", "MCC Score")
+]
+
+metric_cols = st.columns(3)
+
+for index, (key, label) in enumerate(metric_names):
+
+    metric_cols[index % 3].metric(
+        label,
+        f"{selected_metrics[key]:.4f}"
+    )
+
+
+# ==========================================================
+# 16. CONFUSION MATRIX
+# ==========================================================
+
+st.subheader("🎯 Confusion Matrix")
+
+class_labels = selected_model.classes_
+
+cm = confusion_matrix(
+    y_actual,
+    y_pred,
+    labels=class_labels
+)
+
+fig, ax = plt.subplots(figsize=(10, 6))
+
+sns.heatmap(
+    cm,
+    annot=True,
+    fmt="d",
+    cmap="YlGnBu",
+    xticklabels=class_labels,
+    yticklabels=class_labels,
+    linewidths=0.5,
+    linecolor="white",
+    ax=ax
+)
+
+ax.set_xlabel("Predicted Class")
+ax.set_ylabel("Actual Class")
+ax.set_title(f"Confusion Matrix – {selected_model_name}")
+
+plt.xticks(rotation=35, ha="right")
+plt.yticks(rotation=0)
+plt.tight_layout()
+
+st.pyplot(fig, use_container_width=True)
+plt.close(fig)
+
+
+# ==========================================================
+# 17. CLASSIFICATION REPORT
+# ==========================================================
+
+st.subheader("📋 Classification Report")
+
+report = classification_report(
+    y_actual,
+    y_pred,
+    labels=class_labels,
+    output_dict=True,
+    zero_division=0
+)
+
+report_df = pd.DataFrame(report).transpose()
+
+report_df = report_df.drop(
+    index="accuracy",
+    errors="ignore"
+)
+
+report_df.index.name = "Class"
+report_df = report_df.reset_index()
+
+report_df = report_df.rename(
+    columns={
+        "precision": "Precision",
+        "recall": "Recall",
+        "f1-score": "F1-score",
+        "support": "Support"
+    }
+)
+
+st.dataframe(
+    report_df.style.format({
+        "Precision": "{:.4f}",
+        "Recall": "{:.4f}",
+        "F1-score": "{:.4f}",
+        "Support": "{:.0f}"
+    }),
+    use_container_width=True,
+    hide_index=True
+)
+
+
+# ==========================================================
+# 18. MODEL PERFORMANCE OVERVIEW
+# ==========================================================
+
+st.divider()
+
+st.header("🏆 Model Performance Overview")
+
+st.markdown(
+    '<p class="section-note">'
+    'Compare all five saved classification models using the six '
+    'evaluation metrics on the same test dataset.'
+    '</p>',
+    unsafe_allow_html=True
+)
+
+best_accuracy_row = comparison_df.loc[
+    comparison_df["Accuracy"].idxmax()
+]
+
+best_auc_row = comparison_df.loc[
+    comparison_df["AUC"].idxmax()
+]
+
+winner_col1, winner_col2, winner_col3 = st.columns(3)
+
+winner_col1.metric(
+    "Best Accuracy",
+    f"{best_accuracy_row['Accuracy']:.4f}",
+    best_accuracy_row["ML Model Name"]
+)
+
+winner_col2.metric(
+    "Best AUC",
+    f"{best_auc_row['AUC']:.4f}",
+    best_auc_row["ML Model Name"]
+)
+
+winner_col3.metric(
+    "Models Evaluated",
+    len(comparison_df)
+)
+
+
+# ==========================================================
+# 19. MODEL COMPARISON TABLE
+# ==========================================================
+
+st.subheader("📊 Evaluation Metrics Comparison")
+
+metric_columns = [
+    "Accuracy",
+    "AUC",
+    "Precision",
+    "Recall",
+    "F1",
+    "MCC"
+]
+
+styled_df = (
+    comparison_df.style
+    .format({
+        column: "{:.4f}"
+        for column in metric_columns
+    })
+    .highlight_max(
+        subset=metric_columns,
+        color="#D9F2E3"
+    )
+)
+
+st.dataframe(
+    styled_df,
+    use_container_width=True,
+    hide_index=True
+)
+
+
+# ==========================================================
+# 20. MODEL PERFORMANCE VISUALIZATION
+# ==========================================================
+
+st.divider()
+
+st.header("📈 Model Performance Visualization")
+
+chart_tab1, chart_tab2, chart_tab3 = st.tabs([
+    "Metric Comparison",
+    "Accuracy Ranking",
+    "Dataset Distribution"
+])
+
+
+# Metric Comparison
+
+with chart_tab1:
+
+    st.subheader("Compare Evaluation Metrics")
+
+    selected_chart_metrics = st.multiselect(
+        "Select metrics to visualize",
+        metric_columns,
+        default=["Accuracy", "AUC", "F1", "MCC"],
+        key="comparison_metric_select"
+    )
+
+    if selected_chart_metrics:
+
+        chart_data = comparison_df.set_index(
+            "ML Model Name"
+        )[selected_chart_metrics]
+
+        fig, ax = plt.subplots(figsize=(11, 5))
+
+        chart_data.plot(
+            kind="bar",
+            ax=ax,
+            width=0.8
+        )
+
+        ax.set_ylabel("Metric Score")
+        ax.set_xlabel("Classification Model")
+        ax.set_ylim(0, 1.05)
+        ax.set_title("Evaluation Metrics Across Five Models")
+        ax.tick_params(axis="x", rotation=20)
+        ax.legend(title="Metrics")
+
+        plt.tight_layout()
+
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
+    else:
+
+        st.info(
+            "Select at least one metric to display the chart."
+        )
+
+
+# Accuracy Ranking
+
+with chart_tab2:
+
+    st.subheader("Model Accuracy Ranking")
+
+    ranking_df = comparison_df.sort_values(
+        by="Accuracy",
+        ascending=True
+    )
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    ax.barh(
+        ranking_df["ML Model Name"],
+        ranking_df["Accuracy"]
+    )
+
+    ax.set_xlabel("Accuracy")
+    ax.set_xlim(0, 1.05)
+    ax.set_title("Classification Model Accuracy")
+
+    for index, value in enumerate(ranking_df["Accuracy"]):
+
+        ax.text(
+            value + 0.005,
+            index,
+            f"{value:.4f}",
+            va="center"
+        )
+
+    plt.tight_layout()
+
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
+
+
+# Dataset Distribution
+
+with chart_tab3:
+
+    st.subheader("Dry Bean Class Distribution")
+
+    class_distribution = (
+        test_data[TARGET]
+        .value_counts()
+        .sort_values(ascending=False)
+    )
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    sns.barplot(
+        x=class_distribution.values,
+        y=class_distribution.index,
+        ax=ax
+    )
+
+    ax.set_xlabel("Number of Test Records")
+    ax.set_ylabel("Bean Class")
+    ax.set_title("Distribution of Dry Bean Varieties")
+
+    plt.tight_layout()
+
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
+
+
+# ==========================================================
+# 21. PREDICTION SUMMARY
+# ==========================================================
+
+st.divider()
+
+st.header("📌 Prediction Summary")
+
+correct_predictions = int(
+    (y_actual.to_numpy() == y_pred).sum()
+)
+
+incorrect_predictions = (
+    len(y_actual) - correct_predictions
+)
+
+summary1, summary2, summary3 = st.columns(3)
+
+summary1.metric(
+    "Total Predictions",
+    f"{len(y_actual):,}"
+)
+
+summary2.metric(
+    "Correct Predictions",
+    f"{correct_predictions:,}"
+)
+
+summary3.metric(
+    "Incorrect Predictions",
+    f"{incorrect_predictions:,}"
+)
+
+
+# ==========================================================
+# 22. MODEL INSIGHTS
+# ==========================================================
+
+st.divider()
+
+st.header("💡 Model Insights")
+
+best_accuracy_model = comparison_df.loc[
+    comparison_df["Accuracy"].idxmax(),
+    "ML Model Name"
+]
+
+best_auc_model = comparison_df.loc[
+    comparison_df["AUC"].idxmax(),
+    "ML Model Name"
+]
+
+lowest_accuracy_model = comparison_df.loc[
+    comparison_df["Accuracy"].idxmin(),
+    "ML Model Name"
+]
+
+st.markdown(f"""
+- 🏆 **Best accuracy:** {best_accuracy_model}
+- 🎯 **Best AUC:** {best_auc_model}
+- 📉 **Lowest accuracy:** {lowest_accuracy_model}
+""")
+
+
+# ==========================================================
+# 23. FOOTER
+# ==========================================================
+
+st.divider()
+
+st.markdown("""
+<div style="text-align:center; color:#718096; padding:15px;">
+    <b>Dry Bean Classification Dashboard</b><br>
+    BITS Pilani | M.Tech AIML | Machine Learning Assignment 2<br>
+    Five classifiers • Six evaluation metrics • Interactive analysis
+</div>
+""", unsafe_allow_html=True)
