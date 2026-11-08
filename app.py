@@ -841,7 +841,7 @@ styled_df = (
     })
     .highlight_max(
         subset=metric_columns,
-        color="#D9F2E3"
+        props="background-color: #E1EDF8; color: #17365D;"
     )
 )
 
