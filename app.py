@@ -479,7 +479,7 @@ upload_col, download_col = st.columns([1.35, 1], gap="medium")
 with upload_col:
 
     uploaded_file = st.file_uploader(
-        "Upload a test dataset (optional)",
+        "Upload a test dataset",
         type=["csv"],
         help=(
             "Upload any CSV file containing "
@@ -641,7 +641,7 @@ except Exception as error:
 
 st.divider()
 
-st.header("🔍 Explore an Individual Model")
+st.header("🔍 Explore an Individual Model – Evaluation Metrics")
 
 st.markdown(
     '<p class="section-note">'
