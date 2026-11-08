@@ -83,24 +83,32 @@ st.markdown("""
     margin-bottom: 18px;
 }
 
-/* Metric cards */
+/* ========================================================
+   METRIC CARDS
+   ======================================================== */
+
 div[data-testid="stMetric"] {
-    background: #F5F8F6;
+    background: #F5F8F6 !important;
     border: 1px solid #E0EAE3;
     padding: 15px;
     border-radius: 12px;
 }
 
-/* Metric card headings - enforce readable text colour */
-div[data-testid="stMetricLabel"],
-div[data-testid="stMetricLabel"] * {
+/* Force metric heading visibility across Safari and Chrome */
+div[data-testid="stMetric"] [data-testid="stMetricLabel"],
+div[data-testid="stMetric"] [data-testid="stMetricLabel"] *,
+div[data-testid="stMetric"] [data-testid="stMetricLabel"] p,
+div[data-testid="stMetric"] [data-testid="stMetricLabel"] span {
     color: #52665A !important;
+    -webkit-text-fill-color: #52665A !important;
     opacity: 1 !important;
 }
 
 /* Metric values */
-div[data-testid="stMetricValue"] {
-    color: #174D34;
+div[data-testid="stMetric"] [data-testid="stMetricValue"],
+div[data-testid="stMetric"] [data-testid="stMetricValue"] * {
+    color: #174D34 !important;
+    -webkit-text-fill-color: #174D34 !important;
 }
 
 /* File uploader */
