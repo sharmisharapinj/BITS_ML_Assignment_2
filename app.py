@@ -91,10 +91,14 @@ div[data-testid="stMetric"] {
     border-radius: 12px;
 }
 
-div[data-testid="stMetricLabel"] {
-    color: #52665A;
+/* Metric card headings - enforce readable text colour */
+div[data-testid="stMetricLabel"],
+div[data-testid="stMetricLabel"] * {
+    color: #52665A !important;
+    opacity: 1 !important;
 }
 
+/* Metric values */
 div[data-testid="stMetricValue"] {
     color: #174D34;
 }
